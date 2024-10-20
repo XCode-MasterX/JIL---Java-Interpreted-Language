@@ -1,5 +1,5 @@
 package JILUtils;
 
-public class JILFunction {
-    
+public interface JILFunction<T> {
+    public T call(Object... args);
 }

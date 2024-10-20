@@ -1,4 +1,11 @@
 package JILBase;
+
+import JILDataTypes.*;
+import JILIO.Logger;
+import JILUtils.JILFunction;
+
+import java.util.HashMap;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -6,12 +13,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class jil {
+    @SuppressWarnings("rawtypes")
+    private HashMap<String, JILFunction> userFunctions = null;
     public static Logger logger = null;
 
     public jil(final String userFile, final String logFile) {
         try {
             readFile(userFile);
             logger = new Logger(logFile);
+            userFunctions = new HashMap<>();
         }
         catch(FileNotFoundException e) {
             System.out.println("The input file doesn't exist. Make sure the path is correct.\nThe path used was: " + e.getMessage());
@@ -19,11 +29,12 @@ public class jil {
         }
     }
 
-    public static void main(String args[]) {
+    public static void main(String args[]) {        
         if(args == null) {
             System.out.println("No arguments found.\nUsage: java jil -f <userFile>.jil");
             return;
         }
+
         String userFile = null;
         String logFile = null;
 

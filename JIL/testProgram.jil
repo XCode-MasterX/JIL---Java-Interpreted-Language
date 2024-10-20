@@ -1,0 +1,42 @@
+import jilio
+
+declare {
+    int a
+    int b
+    const int c
+    String name
+}
+
+initial {
+    a = b = 0
+    c = 100
+}
+
+// Main driving code. Can't run without this.
+driver {
+    logger.writef("A value: %d", a)
+    logger.writef("B value: %d", b)
+
+    a = input("Enter first number: ")
+    b = input("Enter second number: ")
+
+    a += b
+    logger.writef("Sum = ", a)
+
+    x = input("Enter your name: ")
+    logger.writef("Hello %s", x)
+
+    call factorial(b)
+}
+
+factorial(int a): void {
+    temp {
+        int i = 1
+        int fac = 1
+    }
+
+    for(i < a; i++)
+        fac *= i
+
+    logger.writef("The factorial is: %d", fac);
+}

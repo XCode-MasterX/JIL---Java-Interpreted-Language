@@ -10,6 +10,17 @@ public class JILString {
         value = new StringBuilder(x);
     }
 
+    public JILString(String x, boolean constant) {
+        isConstant = constant;
+        value = new StringBuilder(x);
+    }
+
+    public void append(JILString add)   { this.value.append(add.value); }
+    public void append(String add)      { this.value.append(add);       }
+
+    public char charAt(JILInt index)    { return this.value.charAt((int)index.getValue());  }
+    public char charAt(int index)       { return this.value.charAt(index);                  }
+
     public String getValue() { return value.toString(); }
     public void setValue(String resetValue) throws ConstantValueEditException {
         if(!isConstant) {

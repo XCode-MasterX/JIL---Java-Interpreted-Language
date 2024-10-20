@@ -1,7 +1,7 @@
 package JILDataTypes;
 
 public abstract class JILNumber {
-    boolean isConstant = false;
+    final boolean isConstant;
 
     public JILNumber(boolean constant) { isConstant = constant; }
 }
