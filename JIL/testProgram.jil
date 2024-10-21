@@ -1,4 +1,6 @@
-import jilio
+import {
+    jilio
+}
 
 declare {
     int a
@@ -14,17 +16,17 @@ initial {
 
 // Main driving code. Can't run without this.
 driver {
-    logger.writef("A value: %d", a)
-    logger.writef("B value: %d", b)
+    io.writef("A value: %d", a)
+    io.writef("B value: %d", b)
 
-    a = input("Enter first number: ")
-    b = input("Enter second number: ")
+    a = io.input("Enter first number: ")
+    b = io.input("Enter second number: ")
 
     a += b
-    logger.writef("Sum = ", a)
+    io.writef("Sum = ", a)
 
-    x = input("Enter your name: ")
-    logger.writef("Hello %s", x)
+    x = io.input("Enter your name: ")
+    io.writef("Hello %s", x)
 
     call factorial(b)
 }
@@ -38,5 +40,5 @@ factorial(int a): void {
     for(i < a; i++)
         fac *= i
 
-    logger.writef("The factorial is: %d", fac);
+    io.writef("The factorial is: %d", fac)
 }
