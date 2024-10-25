@@ -4,47 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-enum TokenType {
-    // Types of constants
-    CHAR_CONSTANT, DECIMAL_CONSTANT, INT_CONSTANT, STRING_CONSTANT, EOF,
-
-    COMMENT,
-
-    VARIABLE, DATA_TYPE, FUNCTION,
-
-    //Operators
-    LESS_THAN, LESS_EQUAL, GREATER_THAN, GREATER_EQUAL, EQUAL, SEMICOLON,
-    ASSIGNMENT, ADD, SUB, MUL, DIV, DOT, MOD, INCREMENT, DECREMENT, COMMA, COLON,
-    NOT_EQUAL, OR, AND, NOT,
-    BITWISE_AND, BITWISE_OR, BITWISE_NOT, BITWISE_XOR, RIGHT_SHIFT, LEFT_SHIFT,
-    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-
-    // Keywords
-    TRUE, FALSE, IF, ELSE, RETURN, WHILE, FOR,
-    BOOL, CHAR, DECIMAL, INT, STRING, VOID,
-    CALL, DECLARE, FUNC, IMPORT, INITIAL, NULL, TEMP;
-}
-
-class Token {
-    final TokenType type;
-    final String lexeme;
-    final Object literal;
-    final int line; 
-  
-    Token(TokenType type, String lexeme, Object literal, int line) {
-      this.type = type;
-      this.lexeme = lexeme;
-      this.literal = literal;
-      this.line = line;
-    }
-  
-    public String toString() {
-      return "Line: " + line + " -> " + type + " " + lexeme + " " + literal;
-    }
-  }
-
 public class Lexer {
-    private final String program;
+    final String program;
     private final ArrayList<Token> tokens;
     private int start = 0;
     private int current = 0;
@@ -90,7 +51,7 @@ public class Lexer {
             scanToken();
         }
 
-        tokens.add(new Token(TokenType.EOF, "", null, line));
+        tokens.add(new Token(TokenType.EOF, "", null, line, start + 1));
         return tokens;
     }
 
@@ -101,46 +62,68 @@ public class Lexer {
             case '\r':
             case '\t':
                 break;
-            case '(': addToken(TokenType.LEFT_PAREN); break;
-            case ')': addToken(TokenType.RIGHT_PAREN); break;
-            case '{': addToken(TokenType.LEFT_BRACE); break;
-            case '}': addToken(TokenType.RIGHT_BRACE); break;
-            case ',': addToken(TokenType.COMMA); break;
-            case '.': addToken(TokenType.DOT); break;
-            case '*': addToken(TokenType.MUL); break;
-            case ':': addToken(TokenType.COLON); break;
-            case '^': addToken(TokenType.BITWISE_XOR); break;
-            case ';': addToken(TokenType.SEMICOLON); break;
+            case '(': addToken(TokenType.LEFT_PAREN, "("); break;
+            case ')': addToken(TokenType.RIGHT_PAREN, ")"); break;
+            case '{': addToken(TokenType.LEFT_BRACE, "{"); break;
+            case '}': addToken(TokenType.RIGHT_BRACE, "}"); break;
+            case ',': addToken(TokenType.COMMA, ","); break;
+            case '.': addToken(TokenType.DOT, "."); break;
+            case '*': addToken(TokenType.MUL, "*"); break;
+            case ':': addToken(TokenType.COLON, ":"); break;
+            case '^': addToken(TokenType.BITWISE_XOR, "^"); break;
+            case ';': addToken(TokenType.SEMICOLON, ";"); break;
             case '"': string(); break;
             case '\'': character(); break;
-            case '-': 
-                addToken(match('-') ? TokenType.SUB : TokenType.DECREMENT); 
+            case '-':
+                if(match('-'))
+                    addToken(TokenType.DECREMENT, "--");
+                else
+                    addToken(TokenType.SUB, "-"); 
                 break;
-            case '+': 
-                addToken(match('+') ? TokenType.ADD : TokenType.INCREMENT); 
+            case '+':
+                if(match('+'))
+                    addToken(TokenType.INCREMENT, "++");
+                else
+                    addToken(TokenType.ADD, "+");
                 break;
             case '|':
-                addToken(match('|') ? TokenType.OR : TokenType.BITWISE_OR);
+                if(match('|'))
+                    addToken(TokenType.OR, "||");
+                else
+                    addToken(TokenType.BITWISE_OR, "|");
                 break;
             case '!':
-              addToken(match('=') ? TokenType.NOT_EQUAL : TokenType.NOT);
-              break;
+                if(match('='))
+                    addToken(TokenType.NOT_EQUAL, "!=");
+                else
+                    addToken(TokenType.NOT, "!");
+                break;
             case '=':
-                addToken(match('=') ? TokenType.EQUAL : TokenType.ASSIGNMENT);
+                if(match('='))
+                    addToken(TokenType.EQUAL, "==");
+                else
+                    addToken(TokenType.ASSIGNMENT, "=");
                 break;
             case '<':
-                addToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS_THAN);
+                if(match('='))
+                    addToken(TokenType.LESS_EQUAL, "<="); 
+                else
+                    addToken(TokenType.LESS_THAN, "<");
                 break;
             case '>':
-                addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER_THAN);
+                if(match('='))
+                    addToken(TokenType.GREATER_EQUAL, ">="); 
+                else
+                    addToken(TokenType.GREATER_THAN, ">");
                 break;
             case '/':
                 if (match('/'))
                   while (peek() != '\n' && !isEnd()) advance();
                 else
                   addToken(TokenType.DIV);
-                break;      
+                break;
             case '\n':
+                addToken(TokenType.NEWLINE);
                 line++;
                 break;
             
@@ -159,7 +142,7 @@ public class Lexer {
         String text = program.substring(start, current);
         TokenType type = keywords.get(text);
         if (type == null) type = TokenType.VARIABLE;
-        addToken(type);
+        addToken(type, text);
     }
 
     private void character() {
@@ -237,9 +220,9 @@ public class Lexer {
 
     private void addToken(TokenType type) { addToken(type, null); }
 
-    private void addToken(TokenType type, Object literal) { 
+    private void addToken(TokenType type, String literal) { 
         String text = program.substring(start, current);
-        tokens.add(new Token(type, text, literal, line));
+        tokens.add(new Token(type, text, literal, line, start));
     }
 
     private boolean isAlpha(char c) { 

@@ -92,17 +92,97 @@ public class jil {
     }
 
     private static void run(String source) {
-        Lexer lexer = new Lexer(source);
-        ArrayList<Token> tokens = lexer.scanTokens();
+        final Lexer lexer = new Lexer(source);
+        final ArrayList<Token> tokens = lexer.scanTokens();
+        int index = 0;
 
-        for (Token token : tokens)
-            System.out.println(token);
+        for (index = 0; index < tokens.size(); index++) {
+            Token token = tokens.get(index);
+            switch(token.type) {
+                case TokenType.IMPORT: {
+                    index = handleImports(tokens, index);
+                    break;
+                }
+                case TokenType.DECLARE: {
+                    index = handleDeclare(tokens, index);
+                    break;
+                }
+                default: {
+                    System.out.println(token);
+                    break;
+                }
+            }
+        }
     }
 
-    static void error(int line, String message) { report(line, "", message); }
+    static void error(int line, String message) { report(line, "", message); System.exit(-1); }
     
     private static void report(int line, String where, String message) {
         System.err.println("[line " + line + "] Error" + where + ": " + message);
         hadError = true;
+    }
+
+    public static int handleImports(final ArrayList<Token> tokens, int index) {
+        while(tokens.get(index).type != TokenType.RIGHT_BRACE) {
+            System.out.println(tokens.get(index));
+            index++;
+        }
+
+        return index;
+    }
+
+    public static int handleVariable(final ArrayList<Token> tokens, int index) {
+        while(tokens.get(index).lexeme != "\n") {
+            System.out.println(tokens.get(index));
+            index++;
+        }
+
+        return index;
+    }
+
+    // THIS FUNCTION ONLY HANDLES DECLARATION.
+    public static int handleDeclare(final ArrayList<Token> tokens, int index) {
+        if(tokens.get(index + 1).type != TokenType.LEFT_BRACE)
+            error(tokens.get(index).line, "Expected { found " + tokens.get(index));
+
+        Token tok;
+        ArrayList<String> var = new ArrayList<>();
+        ArrayList<TokenType> varType = new ArrayList<>();
+
+        final ArrayList<TokenType> dataList = new ArrayList<>();
+        dataList.add(TokenType.INT);
+        dataList.add(TokenType.DECIMAL);
+        dataList.add(TokenType.BOOL);
+        dataList.add(TokenType.CHAR);
+        dataList.add(TokenType.STRING);
+
+        for(; tokens.get(index).type != TokenType.RIGHT_BRACE; index++) {
+            System.out.println(tokens.get(index));
+            
+            if(tokens.get(index).type == TokenType.VARIABLE) {
+                TokenType type = null;
+
+                tok = tokens.get(index + 1);
+                if(!(tok.type == TokenType.COLON))
+                    error(tok.line, "Expected : found " + tok);
+
+                tok = tokens.get(index + 2);
+                if(tok.type == TokenType.CONST) {
+                    tok = tokens.get(index + 3);
+
+                    if(!dataList.contains(tok.type)) error(tok.line, "Expected data type, found " + tok);
+                    
+                    type = tok.type;
+                }
+                else if(!dataList.contains(tok.type))
+                        error(tok.line, "Expected data type, found " + tok);
+                
+                var.add(tokens.get(index).lexeme);
+                varType.add(type);
+                System.out.println("\n" + tokens.get(index).lexeme + " of type: " + tok.lexeme);
+            }
+        }
+
+        return index;
     }
 }
