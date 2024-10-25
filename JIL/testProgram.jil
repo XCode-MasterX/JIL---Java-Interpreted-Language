@@ -3,9 +3,9 @@ import {
 }
 
 declare {
-    int a
-    int b
-    const int c
+    a: int
+    b: int
+    c: const int
     String name
 }
 
