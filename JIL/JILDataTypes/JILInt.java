@@ -2,6 +2,8 @@ package JILDataTypes;
 
 import java.util.HashMap;
 
+import com.google.common.base.Predicate;
+
 import JILBase.jil;
 import JILUtils.JILFunction;
 import JILExceptions.*;
@@ -12,14 +14,10 @@ public class JILInt extends JILNumber{
     @SuppressWarnings("rawtypes")
     private HashMap<String, JILFunction> functions;
 
-    public JILInt(String x, boolean constant) throws WrongCastException {
+    public JILInt(final long x, final boolean constant) {
         super(constant);
-        try {
-            value = Long.parseLong(x);
-        }
-        catch(NumberFormatException e) {
-            throw new WrongCastException(String.format("Can't convert %d into float value.\n", x));
-        }
+        value = x;
+        wasSet = true;
 
         functions = new HashMap<>();
 
@@ -37,48 +35,67 @@ public class JILInt extends JILNumber{
 
         functions.put("lshift", new JILFunction<JILInt>() {
             public JILInt call(Object... args) {
+                if(args.length > 1) {
+                    jil.logger.write("Too many arguments. Only expect one argument.");
+                    System.exit(1);
+                }
                 if(args[0] instanceof Integer val)
                     return lshift(val);
                 return null;
             }
         });
-    }
 
-    public JILInt(String x) throws WrongCastException {
-        super(false);
-        try {
-            value = Long.parseLong(x);
-        }
-        catch(NumberFormatException e) {
-            throw new WrongCastException(String.format("Can't convert %d into float value.\n", x));
-        }
-    }
 
-    public JILInt(long val, boolean constant) {
-        super(constant);
-        value = val;
-    }
-
-    public JILInt(long val) {
-        super(false);
-        value = val;
-    }
-
-    public long getValue() { return value; }
-    public void setValue(String resetValue) throws ConstantValueEditException, WrongCastException{ 
-        if(!isConstant) {
-            try{
-                value = Long.parseLong(resetValue);
+        functions.put("binary", new JILFunction<JILString>() {
+            public JILString call(Object... args) {
+                if(args.length > 0) {
+                    jil.logger.write("Too many arguments. No arguments expected.");
+                    System.exit(1);
+                }
+                
+                final String x = binaryString();
+                return new JILString(x);
             }
-            catch(NumberFormatException e) {
-                throw new WrongCastException(String.format("Can't convert %d into float value.\n", resetValue));
+        });
+
+        functions.put("asString", new JILFunction<JILString>() {
+            public JILString call(Object... args) {
+                if(args.length > 0) {
+                    jil.logger.write("Too many arguments. No arguments expected.");
+                    System.exit(1);
+                }
+                
+                return asString();
             }
-        }
-        else
-            throw new ConstantValueEditException("The value is a constant. You can't edit constant values.");
+        });
     }
 
-    public String binstring() { return Long.toBinaryString(value); }
+    public JILInt(boolean isConstant) {
+        super(isConstant);
+        wasSet = false;
+    }
+
+    public JILInt(long x) {
+        super(false);
+        value = x;
+        wasSet = true;
+    }
+
+    public Object getValue(final short line) throws ValueNotSetException { 
+        valueIsSet(line);
+        return Long.valueOf(value);
+    }
+
+    public void setValue(final Object arg, final short line) throws ConstantValueEditException, WrongCastException{ 
+        Predicate<Object> condition = (x) ->  x instanceof Long || x instanceof Integer;
+        typeIsCompatible(arg, condition, "The value can't be read as an int.", line);
+        valueIsConstant(line);
+
+        value = Long.parseLong(arg.toString());
+        wasSet = true;
+    }
+
+    public String binaryString() { return Long.toBinaryString(value); }
 
     public JILInt lshift(int a) {
         long ret = value & (int)(Math.pow(1, a) - 1) << a;

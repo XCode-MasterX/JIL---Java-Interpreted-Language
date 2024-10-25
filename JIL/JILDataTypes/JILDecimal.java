@@ -1,42 +1,35 @@
 package JILDataTypes;
 
 import JILExceptions.ConstantValueEditException;
+import JILExceptions.ValueNotSetException;
 import JILExceptions.WrongCastException;
+
+import java.util.function.Predicate;
 
 public class JILDecimal extends JILNumber{
     private double value = 0;
 
-    public JILDecimal(String x, boolean constant) throws WrongCastException{
+    public JILDecimal(double x, boolean constant){
         super(constant);
-        try {
-            value = Double.parseDouble(x);
-        }
-        catch(NumberFormatException e) {
-            throw new WrongCastException(String.format("Can't convert %d into float value.\n", x));
-        }
+        value = x;
+        wasSet = true;
     }
 
-    public JILDecimal(double x, boolean constant) throws WrongCastException{
+    public JILDecimal(boolean constant) {
         super(constant);
-        try {
-            value = x;
-        }
-        catch(NumberFormatException e) {
-            throw new WrongCastException(String.format("Can't convert %d into float value.\n", x));
-        }
+        wasSet = false;
     }
 
-    public double getValue() { return value; }
-    public void setValue(String resetValue) throws ConstantValueEditException, WrongCastException{ 
-        if(!super.isConstant) {
-            try{
-                value = Float.parseFloat(resetValue);
-            }
-            catch(NumberFormatException e) {
-                throw new WrongCastException(String.format("Can't convert %d into float value.\n", resetValue));
-            }
-        }
-        else
-            throw new ConstantValueEditException("The value is a constant. You can't edit constant values.");
+    public Object getValue(final short line) throws ValueNotSetException{
+        valueIsSet(line);
+        return Double.valueOf(value);
+    }
+
+    public void setValue(final Object arg, final short line) throws ConstantValueEditException, WrongCastException{
+        Predicate<Object> condition = (x) ->  x instanceof Double || x instanceof Float || x instanceof Long || x instanceof Integer;
+        typeIsCompatible(arg, condition, "The value can't be read as a decimal", line);
+        valueIsConstant(line);
+
+        value = Double.parseDouble(arg.toString());
     }
 }
