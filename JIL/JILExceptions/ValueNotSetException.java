@@ -1,9 +1,9 @@
 package JILExceptions;
 
-public class WrongCastException extends Exception {
+public class ValueNotSetException extends Exception{
     private final short line;
     
-    public WrongCastException(String msg, short line) {
+    public ValueNotSetException(String msg, short line) {
         super(msg);
         this.line = line;
     }
