@@ -1,9 +1,9 @@
 package JILExceptions;
 
 public class ConstantValueEditException extends Exception{
-    private final short line;
+    public final int line;
     
-    public ConstantValueEditException(String msg, short line) {
+    public ConstantValueEditException(String msg, int line) {
         super(msg);
         this.line = line;
     }

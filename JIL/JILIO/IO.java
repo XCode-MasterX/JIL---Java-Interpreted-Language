@@ -1,6 +1,8 @@
 package JILIO;
 
 import JILDataTypes.*;
+import JILExceptions.FunctionCallException;
+import JILExceptions.WrongCastException;
 import JILUtils.JILFunction;
 
 import java.util.HashMap;
@@ -14,8 +16,10 @@ public class IO {
     @SuppressWarnings("rawtypes")
     private HashMap<String, JILFunction> functions;
     private PrintWriter pw;
+    private final JILVoid returnVoid;
 
     public IO(final String outputFile) {
+        returnVoid = new JILVoid();
         functions = new HashMap<>();
 
         if(outputFile == null) pw = new PrintWriter(System.out);
@@ -26,10 +30,40 @@ public class IO {
 
     public void initializeFunctions() {
         functions.put("writef", new JILFunction<JILVoid>() {
-            public JILVoid call(Object... args) {
-                writef((String)args[0], args);
-                return null;
-            }            
+            public JILVoid call(final short line, Object... args) throws Exception{
+                if(!(args[0] instanceof String))
+                    throw new WrongCastException("The first argument needs to be String for a proper output.", line);
+
+                Object arr[] = new Object[args.length];
+
+                for(int i = 1; i < args.length; i++)
+                    arr[i - 1] = args[0];
+
+                writef((String)args[0], arr);
+                return returnVoid;
+            }
+        });
+
+        functions.put("write", new JILFunction<JILVoid>() {
+            public JILVoid call(final short line, Object... args) throws FunctionCallException{
+                if(args.length > 1)
+                    throw new FunctionCallException("Too many arguments. This function only accepts one.", line);
+
+                write(args[0]);
+                return returnVoid;
+            }
+        });
+
+        functions.put("writeln", new JILFunction<JILVoid>() {
+            public JILVoid call (final short line, Object... args) throws FunctionCallException{
+                if(args.length > 1)
+                    throw new FunctionCallException("Too many arguments. This function only accepts one.", line);
+
+                if(args.length == 1) writeln(args[0]);
+                else if(args.length == 0) writeln();
+                
+                return returnVoid;
+            }
         });
     }
 
@@ -54,11 +88,23 @@ public class IO {
     }
 
     public void writeln()                               { pw.println(); }
-    public void write(JILBoolean output)                { pw.print(output); }
-    public void write(JILDecimal output)                { pw.print(output); }
-    public void write(JILInt output)                    { pw.print(output); }
-    public void write(JILString output)                 { pw.print(output); }
-    public void write(JILChar output)                   { pw.print(output); }
-    public void write(String output)                    { pw.print(output); }
+    public void writeln(Object output)                  { pw.println(output); }
+    public void write(Object output)                    { pw.print(output); }
     public void writef(String format, Object... args)   { pw.printf(format, args); }
+
+    public Object call(final String funcName, final short line, Object... args) {
+        Object returnValue = null;
+
+        try {
+            returnValue = functions.get(funcName).call(line, args);
+        }
+        catch(Exception e) {
+            // If error occurs then print and stop the execution.
+            // If the programmer makes a mistake make it known very well.
+            System.out.println(e.toString());
+            System.exit(1);
+        }
+
+        return returnValue;
+    }
 }

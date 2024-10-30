@@ -1,12 +1,24 @@
 package JILBase;
 
 import JILDataTypes.*;
+import JILExceptions.ConstantValueEditException;
+import JILExceptions.ValueNotSetException;
+import JILExceptions.WrongCastException;
 import JILIO.IO;
+import JILUtils.JILCaster;
+import JILUtils.JILConstructor;
 import JILUtils.JILFunction;
+import JILUtils.JILUserFunction;
+import net.bytebuddy.matcher.HasSuperClassMatcher;
 
-import java.util.HashMap;
-import java.util.Scanner;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+import org.openqa.selenium.devtools.v120.css.model.Value;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -15,19 +27,92 @@ import java.nio.file.Paths;
 
 public class jil {
     @SuppressWarnings("rawtypes")
-    private HashMap<String, JILFunction> userFunctions = null;
-    private String[] varNames;
-    private Object[] varValues;
-    private final String[] libraryNames = {"jilio", "jilbase", "jilutils"};
+    private HashMap<String, JILUserFunction> userFunctions = null;
+    private static String[] varNames;
+    private static JILType[] varValues;
+    private static JILCaster[] varCaster;
+    private ArrayList<Token> userProgram;
+
+    private final String[] libraryNames = {"jilio", "jilutils"};
     private HashMap<String, Object> libraries;
+
     public static IO logger = null;
+    private Parser parser;
     private static boolean hadError = false;
+    private final JILCaster objectCaster[];
+    private JILConstructor objectConstructor[];
 
     public jil(final String userFile, final String logFile) {
+        objectCaster = new JILCaster[]{
+            new JILCaster<JILBoolean>(JILBoolean.class),
+            new JILCaster<JILChar>(JILChar.class),
+            new JILCaster<JILDecimal>(JILDecimal.class),
+            new JILCaster<JILInt>(JILInt.class),
+            new JILCaster<JILString>(JILString.class)
+        };
+
+        objectConstructor = new JILConstructor[]{
+            new JILConstructor<JILBoolean>(new JILFunction<JILBoolean>(){
+                    public JILBoolean call() {
+                        return new JILBoolean(false, false);
+                    }
+                },
+                new JILFunction<JILBoolean>(){
+                    public JILBoolean call() {
+                        return new JILBoolean(true);
+                    }
+                }
+            ),
+            new JILConstructor<JILDecimal>(new JILFunction<JILDecimal>(){
+                    public JILDecimal call() {
+                        return new JILDecimal(0.0, false);
+                    }
+                },
+                new JILFunction<JILDecimal>(){
+                    public JILDecimal call() {
+                        return new JILDecimal(true);
+                    }
+                }
+            ),
+            new JILConstructor<JILChar>(new JILFunction<JILChar>(){
+                    public JILChar call() {
+                        return new JILChar('\0', false);
+                    }
+                },
+                new JILFunction<JILChar>(){
+                    public JILChar call() {
+                        return new JILChar(true);
+                    }
+                }
+            ),
+            new JILConstructor<JILInt>(new JILFunction<JILInt>(){
+                public JILInt call() {
+                    return new JILInt(0, false);
+                }
+            },
+            new JILFunction<JILInt>(){
+                public JILInt call() {
+                    return new JILInt(true);
+                }
+            }),
+            new JILConstructor<JILString>(new JILFunction<JILString>(){
+                public JILString call() {
+                    return new JILString("bruh", false);
+                }
+            },
+            new JILFunction<JILString>(){
+                public JILString call() {
+                    return new JILString(true);
+                }
+            })
+        };
+        
         try {
-            readFile(userFile);
             logger = new IO(logFile);
             userFunctions = new HashMap<>();
+            userProgram = createTokens(readFile(userFile));
+            parser = new Parser(this);
+            run(userProgram);
         }
         catch(IOException e) {
             System.out.println("The input file doesn't exist. Make sure the path is correct.\nThe path used was: " + e.getMessage());
@@ -36,7 +121,7 @@ public class jil {
     }
 
     public static void main(String args[]) {
-        // if(args == null) {
+        // if(args == null || args.length == 0) {
         //     System.out.println("No arguments found.\nUsage: java jil -f <userFile>.jil");
         //     return;
         // }
@@ -85,15 +170,17 @@ public class jil {
         new jil(userFile, logFile);
     }
 
-    public static void readFile(String userFile) throws IOException {
+    public String readFile(String userFile) throws IOException {
         byte[] bytes = Files.readAllBytes(Paths.get(userFile));
-        run(new String(bytes, Charset.defaultCharset()));
+
         if (hadError) System.exit(65);
+
+        return new String(bytes, Charset.defaultCharset());
     }
 
-    private static void run(String source) {
-        final Lexer lexer = new Lexer(source);
-        final ArrayList<Token> tokens = lexer.scanTokens();
+    private ArrayList<Token> createTokens(final String source) { return new Lexer(source).scanTokens(); }
+
+    private void run(final ArrayList<Token> tokens) {
         int index = 0;
 
         for (index = 0; index < tokens.size(); index++) {
@@ -107,82 +194,199 @@ public class jil {
                     index = handleDeclare(tokens, index);
                     break;
                 }
+                case TokenType.INITIAL: {
+                    index = handleInitial(tokens, index);
+                    break;
+                }
                 default: {
-                    System.out.println(token);
                     break;
                 }
             }
         }
-    }
 
-    static void error(int line, String message) { report(line, "", message); System.exit(-1); }
+        if(varNames != null)
+        for(int i = 0; i < varNames.length; i++) {
+            System.out.println(varNames[i] + " -> " + varValues[i]);
+        }
+    }
     
-    private static void report(int line, String where, String message) {
+    static void error(final int line, final String message) { report(line, "", message); System.exit(-1); }
+    
+    private static void report(final int line, final String where, final String message) {
         System.err.println("[line " + line + "] Error" + where + ": " + message);
         hadError = true;
     }
-
-    public static int handleImports(final ArrayList<Token> tokens, int index) {
+    
+    public int handleImports(final ArrayList<Token> tokens, int index) {
         while(tokens.get(index).type != TokenType.RIGHT_BRACE) {
+            index++;
+        }
+        
+        return index;
+    }
+    
+    public int handleVariable(final ArrayList<Token> tokens, int index) {
+        while(!tokens.get(index).lexeme.equals("\n")) {
             System.out.println(tokens.get(index));
             index++;
         }
-
+        
         return index;
     }
-
-    public static int handleVariable(final ArrayList<Token> tokens, int index) {
-        while(tokens.get(index).lexeme != "\n") {
-            System.out.println(tokens.get(index));
-            index++;
-        }
-
-        return index;
-    }
-
+    
     // THIS FUNCTION ONLY HANDLES DECLARATION.
-    public static int handleDeclare(final ArrayList<Token> tokens, int index) {
+    public int handleDeclare(final ArrayList<Token> tokens, int index) {
         if(tokens.get(index + 1).type != TokenType.LEFT_BRACE)
             error(tokens.get(index).line, "Expected { found " + tokens.get(index));
-
+        
         Token tok;
-        ArrayList<String> var = new ArrayList<>();
-        ArrayList<TokenType> varType = new ArrayList<>();
-
+        HashMap<String, TokenType> var = new HashMap<>();
+        HashMap<String, Boolean> isConst = new HashMap<>();
+        int arrIndex = 0;
+        
         final ArrayList<TokenType> dataList = new ArrayList<>();
         dataList.add(TokenType.INT);
         dataList.add(TokenType.DECIMAL);
         dataList.add(TokenType.BOOL);
         dataList.add(TokenType.CHAR);
         dataList.add(TokenType.STRING);
-
-        for(; tokens.get(index).type != TokenType.RIGHT_BRACE; index++) {
-            System.out.println(tokens.get(index));
+        
+        for(; tokens.get(index).type != TokenType.RIGHT_BRACE; index++) {          
+            int inc = 0;
+            boolean constant = false;
             
             if(tokens.get(index).type == TokenType.VARIABLE) {
-                TokenType type = null;
-
-                tok = tokens.get(index + 1);
+                inc++;
+                tok = tokens.get(index + inc);
                 if(!(tok.type == TokenType.COLON))
-                    error(tok.line, "Expected : found " + tok);
-
-                tok = tokens.get(index + 2);
+                error(tok.line, "Expected ':' found " + tok);
+                
+                inc++;
+                tok = tokens.get(index + inc);
                 if(tok.type == TokenType.CONST) {
-                    tok = tokens.get(index + 3);
-
-                    if(!dataList.contains(tok.type)) error(tok.line, "Expected data type, found " + tok);
+                    inc++;
+                    tok = tokens.get(index + inc);
                     
-                    type = tok.type;
+                    if(!dataList.contains(tok.type)) error(tok.line, "Found CONST but, expected data type, found " + tok);
+                    constant = true;
                 }
                 else if(!dataList.contains(tok.type))
-                        error(tok.line, "Expected data type, found " + tok);
+                error(tok.line, "Expected data type, found " + tok);
                 
-                var.add(tokens.get(index).lexeme);
-                varType.add(type);
-                System.out.println("\n" + tokens.get(index).lexeme + " of type: " + tok.lexeme);
+                var.put(tokens.get(index).lexeme, tok.type);
+                isConst.put(tokens.get(index).lexeme, constant);
             }
+        }
+        
+        ArrayList<Map.Entry<String, TokenType>> sortable = new ArrayList<>(var.entrySet());        
+        Collections.sort(sortable, (x, y) -> x.getKey().compareTo(y.getKey()));
+        
+        varNames = new String[var.size()];
+        varValues = new JILType[var.size()];
+        varCaster = new JILCaster[var.size()];
+        for(Map.Entry<String, TokenType> ele : sortable)
+        {
+            varNames[arrIndex] = ele.getKey();
+            TokenType type = ele.getValue();
+            
+            if(isConst.get(ele.getKey()))
+                varValues[arrIndex] = (JILType) this.objectConstructor[type.ordinal()].constructConstant();
+            else
+                varValues[arrIndex] = (JILType) this.objectConstructor[type.ordinal()].constructDefault();
+            varCaster[arrIndex++] = this.objectCaster[type.ordinal()];
+        }
+        
+        System.out.println("Variable names: " + Arrays.toString(varNames));
+        
+        return index;
+    }
+
+    private int handleInitial(final ArrayList<Token> tokens, int index) {
+        if(tokens.get(index + 1).type != TokenType.LEFT_BRACE)
+            error(tokens.get(index).line, "Expected { found " + tokens.get(index));
+
+        Token curToken = null;
+
+        while((curToken = tokens.get(index)).type != TokenType.RIGHT_BRACE) {
+            if(curToken.type == TokenType.VARIABLE)
+                index = handleAssignment(tokens, index);
+
+            index++;
         }
 
         return index;
+    }
+
+    private int handleAssignment(final ArrayList<Token> tokens, int index) {
+        Token curToken = tokens.get(index);
+        JILType curVariable = varValues[getVariable(curToken.lexeme)];
+
+        System.out.println("Handling assignment for " + curToken.lexeme);
+
+        try {
+            while((curToken = tokens.get(index)).type != TokenType.NEWLINE && curToken.type != TokenType.SEMICOLON) {
+                Token tok;
+                int inc = 0;
+
+                if(curToken.type == TokenType.VARIABLE) {
+                    curVariable = varValues[getVariable(curToken.lexeme)];
+
+                    inc++;
+                    tok = tokens.get(index + inc);
+                    if(tok.type != TokenType.ASSIGNMENT)
+                        error(tok.line, "Expected '=', but found: " + tok.lexeme);
+
+                    inc++;
+                    tok = tokens.get(index + inc);
+
+                    if(tok.type == TokenType.VARIABLE) {
+                        handleAssignment(tokens, index + inc);
+                        curVariable.setValue(getVariableValue(tok.lexeme).getValue((short) curToken.line), (short) curToken.line);
+                    }
+                    else {
+                        JILType value = parser.parseExpression(tokens, index + inc);
+                        curVariable.setValue(value.getValue(tok.line), tok.line);
+                    }
+                }
+                index++;
+            }
+        }
+        catch(WrongCastException e) {
+            error(e.line, e.getMessage());
+        }
+        catch(ConstantValueEditException e) {
+            error(e.line, e.getMessage());
+        }
+        catch(ValueNotSetException e) {
+            error(e.line, e.getMessage());
+        }
+
+        return index;
+    }
+
+    public int getVariable(final String search) {
+        int start = 0, end = varNames.length - 1, mid = (start + end) / 2;
+        
+        while(start <= end) {
+            mid = (start + end) / 2;
+
+            if(mid > end) break;
+
+            if(search.equals(varNames[mid])) return mid;
+
+            if(varNames[mid].compareTo(search) < 0) start = mid + 1;
+            else if(varNames[mid].compareTo(search) > 0) end = mid - 1;
+        }
+
+        return -1;
+    }
+
+    public JILType getVariableValue(final Token search) {
+        int index = getVariable(search.lexeme);
+
+        if(index != -1) return varValues[index];
+        
+        jil.error(search.line, "The variable " + search.lexeme + " has not been defined.");
+        return null;
     }
 }

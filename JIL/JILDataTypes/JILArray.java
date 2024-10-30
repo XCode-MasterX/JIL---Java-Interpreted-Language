@@ -23,7 +23,7 @@ public class JILArray<T> {
     public Object get(int index) { return arr[index]; }
 
     public JILString asString(final short line) {
-        JILString str = new JILString("[");
+        JILString str = new JILString("[", false);
         for(Object x : arr) str.append(x.toString(), line);
         str.append("]", line);
 

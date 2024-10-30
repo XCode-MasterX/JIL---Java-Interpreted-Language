@@ -1,9 +1,9 @@
 package JILExceptions;
 
-public class WrongCastException extends Exception {
+public class FunctionCallException extends Exception{
     public final int line;
     
-    public WrongCastException(String msg, int line) {
+    public FunctionCallException(String msg, int line) {
         super(msg);
         this.line = line;
     }

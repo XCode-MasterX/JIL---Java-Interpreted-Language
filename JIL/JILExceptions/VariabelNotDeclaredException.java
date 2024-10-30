@@ -1,9 +1,9 @@
 package JILExceptions;
 
-public class WrongCastException extends Exception {
+public class VariabelNotDeclaredException extends Exception {
     public final int line;
     
-    public WrongCastException(String msg, int line) {
+    public VariabelNotDeclaredException(String msg, int line) {
         super(msg);
         this.line = line;
     }

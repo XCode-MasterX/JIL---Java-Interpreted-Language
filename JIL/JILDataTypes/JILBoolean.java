@@ -4,38 +4,36 @@ import JILExceptions.ConstantValueEditException;
 import JILExceptions.ValueNotSetException;
 import JILExceptions.WrongCastException;
 
+import java.util.function.Predicate;
+
 public class JILBoolean extends JILType {
     private boolean value;
-    private boolean wasSet = false;
 
-    JILBoolean(boolean isConstant) {
+    public JILBoolean(boolean isConstant) {
         super(isConstant);
         wasSet = false;
     }
 
-    JILBoolean(boolean value, boolean isConstant) {
+    public JILBoolean(boolean value, boolean isConstant) {
         super(isConstant);
         this.value = value;
         wasSet = true;
     }
 
-    @Override
-    public void setValue(final Object arg, final short line) throws WrongCastException, ConstantValueEditException {
-        if(!(arg instanceof Boolean))
-            throw new WrongCastException("The value can't be read as a bool.", line);
+    public static JILBoolean createDefault() { return new JILBoolean(false, false); }
+    public static JILBoolean createDefaultConstant() { return new JILBoolean(true); }
 
-        if(isConstant && wasSet)
-            throw new ConstantValueEditException("The value is a constant. You can't edit constant values.", line);
+    public void setValue(final Object arg, final int line) throws WrongCastException, ConstantValueEditException {
+        Predicate<Object> condition = (x) -> x instanceof Boolean ;
+        typeIsCompatible(arg, condition, "The value can't be read as a boolean.", line);
+        valueIsConstant(line);
 
         value = ((Boolean) arg).booleanValue();
         wasSet = true;
     }
 
-    @Override
-    public Object getValue(final short line) throws ValueNotSetException {
-        if(!wasSet)
-            throw new ValueNotSetException("The value was not previously set.", line);
-        
+    public Object getValue(final int line) throws ValueNotSetException {
+        valueIsSet(line);
         return Boolean.valueOf(value);
     }
 

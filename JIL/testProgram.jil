@@ -3,15 +3,18 @@ import {
 }
 
 declare {
-    a: int
-    b: int
     c: const int
-    String name
+    b: int
+    a: int
+    name: String
+    name1: String
+    name2: String
+    name3: String
 }
 
 initial {
-    a = b = 0
-    c = 100
+    a = b = 100/2
+    c = 1000
 }
 
 // Main driving code. Can't run without this.

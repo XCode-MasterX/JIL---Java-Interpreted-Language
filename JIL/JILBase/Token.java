@@ -14,7 +14,7 @@ public class Token {
       this.line = line;
       this.index = index;
     }
-  
+    
     public String toString() {
       return "Line: " + line + " -> " + lexeme + " " + literal;
     }

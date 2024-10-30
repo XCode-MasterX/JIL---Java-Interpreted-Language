@@ -19,13 +19,16 @@ public class JILChar extends JILType{
         wasSet = false;
     }
 
-    public Object getValue(final short line) throws ValueNotSetException{
+    public static JILChar createDefault() { return new JILChar('\0', false); }
+    public static JILChar createDefaultConstant() { return new JILChar(true); }
+
+    public Object getValue(final int line) throws ValueNotSetException{
         if(!wasSet)
             throw new ValueNotSetException("The value was not set previously.", line);
         return Character.valueOf(value); 
     }
 
-    public void setValue(final Object arg, final short line) throws ConstantValueEditException, WrongCastException{
+    public void setValue(final Object arg, final int line) throws ConstantValueEditException, WrongCastException{
         if(!(arg instanceof Character || arg instanceof String))
             throw new WrongCastException("The value can't be read as a character.", line);
         

@@ -1,9 +1,9 @@
 package JILExceptions;
 
 public class ValueNotSetException extends Exception{
-    private final short line;
+    public final int line;
     
-    public ValueNotSetException(String msg, short line) {
+    public ValueNotSetException(String msg, int line) {
         super(msg);
         this.line = line;
     }

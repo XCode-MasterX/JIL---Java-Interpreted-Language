@@ -1,34 +1,53 @@
 package JILDataTypes;
 
+import JILBase.jil;
 import JILExceptions.ConstantValueEditException;
+import JILExceptions.FunctionCallException;
 import JILExceptions.ValueNotSetException;
 import JILExceptions.WrongCastException;
+import JILUtils.JILFunction;
 
 import java.util.function.Predicate;
+import java.util.HashMap;
 
 public abstract class JILType {
     final boolean isConstant;
     boolean wasSet;
+    HashMap<String, JILFunction> functions;
 
     JILType(boolean constant) {
         isConstant = constant;
     }
     
-    abstract public void setValue(Object arg, short line) throws WrongCastException, ConstantValueEditException;
-    abstract public Object getValue(short line)  throws ValueNotSetException;
+    abstract public void setValue(Object arg, final int line) throws WrongCastException, ConstantValueEditException;
+    abstract public Object getValue(final int line)  throws ValueNotSetException;
 
-    public void valueIsConstant(final short line) throws ConstantValueEditException {
+    public void valueIsConstant(final int line) throws ConstantValueEditException {
         if(isConstant && wasSet)
             throw new ConstantValueEditException("The value is a constant. You can't edit constant values.", line);
     }
 
-    public void valueIsSet(final short line) throws ValueNotSetException {
-        if(!wasSet) 
+    public void valueIsSet(final int line) throws ValueNotSetException {
+        if(!wasSet)
             throw new ValueNotSetException("The value was not previously set.", line);
     }
 
-    public void typeIsCompatible(Object arg, Predicate<Object> checker, final String msg, final short line) throws WrongCastException{
+    public void typeIsCompatible(Object arg, Predicate<Object> checker, final String msg, final int line) throws WrongCastException{
         if(!checker.test(arg))
             throw new WrongCastException(msg, line);
+    }
+
+    public void call(final String funcName, final int line, Object... args) {
+        try {
+            functions.get(funcName).call(line, args);
+        }
+        catch(FunctionCallException e) {
+            jil.logger.write(e.toString());
+            System.exit(1);
+        }
+        catch(Exception e) {
+            jil.logger.write(e.toString());
+            System.exit(1);
+        }
     }
 }

@@ -11,18 +11,25 @@ import JILExceptions.*;
 public class JILInt extends JILNumber{
     private long value;
 
-    @SuppressWarnings("rawtypes")
-    private HashMap<String, JILFunction> functions;
-
     public JILInt(final long x, final boolean constant) {
         super(constant);
         value = x;
         wasSet = true;
 
+        initFunctions();
+    }
+
+    public JILInt(boolean isConstant) {
+        super(isConstant);
+        wasSet = false;
+        initFunctions();
+    }
+
+    public void initFunctions() {
         functions = new HashMap<>();
 
         functions.put("rshift", new JILFunction<JILInt>() {
-            public JILInt call(Object... args) {
+            public JILInt call(final int line, Object... args) {
                 if(args.length > 1) {
                     jil.logger.write("Too many arguments. Only expect one argument.");
                     System.exit(1);
@@ -34,86 +41,84 @@ public class JILInt extends JILNumber{
         });
 
         functions.put("lshift", new JILFunction<JILInt>() {
-            public JILInt call(Object... args) {
-                if(args.length > 1) {
-                    jil.logger.write("Too many arguments. Only expect one argument.");
-                    System.exit(1);
-                }
-                if(args[0] instanceof Integer val)
+            public JILInt call(final int line, Object... args) throws FunctionCallException, WrongCastException {
+                if(args.length > 1)
+                    throw new FunctionCallException("Too many arguments. Only expect one argument.", line);
+
+                if(args[0] instanceof Long val)
                     return lshift(val);
-                return null;
+                
+                throw new WrongCastException("The passed value can't be read as int. You need to pass an int to call this function.", line);
             }
         });
 
 
         functions.put("binary", new JILFunction<JILString>() {
-            public JILString call(Object... args) {
-                if(args.length > 0) {
-                    jil.logger.write("Too many arguments. No arguments expected.");
-                    System.exit(1);
-                }
+            public JILString call(final int line, Object... args) throws Exception{
+                if(args.length > 0) 
+                    throw new FunctionCallException("Too many arguments for the function that doesn't accept any.", line);
                 
                 final String x = binaryString();
-                return new JILString(x);
+                return new JILString(x, false);
             }
         });
 
         functions.put("asString", new JILFunction<JILString>() {
-            public JILString call(Object... args) {
-                if(args.length > 0) {
-                    jil.logger.write("Too many arguments. No arguments expected.");
-                    System.exit(1);
-                }
+            public JILString call(final int line, Object... args) throws FunctionCallException{
+                if(args.length > 0)
+                    throw new FunctionCallException("Too many arguments. No arguments expected.", line);
                 
                 return asString();
             }
         });
     }
 
-    public JILInt(boolean isConstant) {
-        super(isConstant);
-        wasSet = false;
-    }
-
-    public JILInt(long x) {
-        super(false);
-        value = x;
-        wasSet = true;
-    }
-
-    public Object getValue(final short line) throws ValueNotSetException { 
+    public Object getValue(final int line) throws ValueNotSetException { 
         valueIsSet(line);
         return Long.valueOf(value);
     }
 
-    public void setValue(final Object arg, final short line) throws ConstantValueEditException, WrongCastException{ 
+    public void setValue(final Object arg, final int line) throws ConstantValueEditException, WrongCastException{
         Predicate<Object> condition = (x) ->  x instanceof Long || x instanceof Integer;
-        typeIsCompatible(arg, condition, "The value can't be read as an int.", line);
+        typeIsCompatible(arg, condition, "The value " + arg +" can't be read as an int.", line);
         valueIsConstant(line);
 
-        value = Long.parseLong(arg.toString());
-        wasSet = true;
+        value = (Long) arg;
+        super.wasSet = true;
     }
 
     public String binaryString() { return Long.toBinaryString(value); }
 
-    public JILInt lshift(int a) {
+    public JILInt lshift(long a) {
         long ret = value & (int)(Math.pow(1, a) - 1) << a;
         value <<= a;
-        return new JILInt(ret);
+        return new JILInt(ret, false);
     }
 
-    public JILInt rshift(int a) {
+    public JILInt rshift(long a) {
         long ret = value & (int)(Math.pow(2, a) - 1);
         value >>= a;
-        return new JILInt(ret);
+        return new JILInt(ret, false);
     }
 
-    public JILString asString() { return new JILString(this.toString()); }
+    public JILString asString() { return new JILString(this.toString(), false); }
 
     public String toString() { return String.valueOf(value); }
 
-    public void call(String funcName, Object... args) {
-        functions.get(funcName).call(args);
+    public void call(final String funcName, final short line, Object... args) {
+        try {
+            functions.get(funcName).call(line, args);
+        }
+        catch(FunctionCallException e) {
+            jil.logger.write(e.toString());
+            System.exit(1);
+        }
+        catch(Exception e) {
+            jil.logger.write(e.toString());
+            System.exit(1);
+        }
     }
+
+    public static JILInt createDefault() { return new JILInt(0, false); }
+    public static JILInt createDefaultConstant() { return new JILInt(true); }
 }

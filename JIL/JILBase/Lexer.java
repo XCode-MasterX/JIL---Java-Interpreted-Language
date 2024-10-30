@@ -25,20 +25,22 @@ public class Lexer {
         keywords.put("import",  TokenType.IMPORT);
         keywords.put("initial", TokenType.INITIAL);
         keywords.put("declare", TokenType.DECLARE);
+        keywords.put("driver", TokenType.DRIVER);
         keywords.put("call",    TokenType.CALL);
         keywords.put("func",    TokenType.FUNC);
         keywords.put("temp",    TokenType.TEMP);
         keywords.put("nil",     TokenType.NULL);
         keywords.put("return",  TokenType.RETURN);
-
+        
+        keywords.put("const",  TokenType.CONST);
         keywords.put("void",    TokenType.VOID);
         keywords.put("bool",    TokenType.BOOL);
         keywords.put("char",    TokenType.CHAR);
         keywords.put("decimal", TokenType.DECIMAL);
         keywords.put("int",     TokenType.INT);
+        keywords.put("string",  TokenType.STRING);
         keywords.put("String",  TokenType.STRING);
     }
-
 
     public Lexer(String program) {
         this.program = program;
@@ -68,59 +70,56 @@ public class Lexer {
             case '}': addToken(TokenType.RIGHT_BRACE, "}"); break;
             case ',': addToken(TokenType.COMMA, ","); break;
             case '.': addToken(TokenType.DOT, "."); break;
-            case '*': addToken(TokenType.MUL, "*"); break;
             case ':': addToken(TokenType.COLON, ":"); break;
             case '^': addToken(TokenType.BITWISE_XOR, "^"); break;
             case ';': addToken(TokenType.SEMICOLON, ";"); break;
+            case '~': addToken(TokenType.BITWISE_NOT, "~"); break;
             case '"': string(); break;
             case '\'': character(); break;
             case '-':
-                if(match('-'))
-                    addToken(TokenType.DECREMENT, "--");
-                else
-                    addToken(TokenType.SUB, "-"); 
+                if(match('-'))      addToken(TokenType.DECREMENT, "--");
+                else if(match('-')) addToken(TokenType.SUB_EQUAL, "-=");
+                else                         addToken(TokenType.SUB, "-");
                 break;
             case '+':
-                if(match('+'))
-                    addToken(TokenType.INCREMENT, "++");
-                else
-                    addToken(TokenType.ADD, "+");
+                if(match('+'))      addToken(TokenType.INCREMENT, "++");
+                else if(match('=')) addToken(TokenType.ADD_EQUAL, "+=");
+                else                         addToken(TokenType.ADD, "+");
+                break;
+            case '*': 
+                if(match('*')) {
+                    current++;
+                    if(match('=')) addToken(TokenType.POWER_EQUAL, "**=");
+                    else           addToken(TokenType.POWER, "**");
+                }
+                else if(match('=')) addToken(TokenType.MUL_EQUAL, "*=");
+                else                         addToken(TokenType.MUL, "*");
                 break;
             case '|':
-                if(match('|'))
-                    addToken(TokenType.OR, "||");
-                else
-                    addToken(TokenType.BITWISE_OR, "|");
+                if(match('|')) addToken(TokenType.OR, "||");
+                else                    addToken(TokenType.BITWISE_OR, "|");
                 break;
             case '!':
-                if(match('='))
-                    addToken(TokenType.NOT_EQUAL, "!=");
-                else
-                    addToken(TokenType.NOT, "!");
+                if(match('=')) addToken(TokenType.NOT_EQUAL, "!=");
+                else                    addToken(TokenType.NOT, "!");
                 break;
             case '=':
-                if(match('='))
-                    addToken(TokenType.EQUAL, "==");
-                else
-                    addToken(TokenType.ASSIGNMENT, "=");
+                if(match('=')) addToken(TokenType.EQUAL, "==");
+                else                    addToken(TokenType.ASSIGNMENT, "=");
                 break;
             case '<':
-                if(match('='))
-                    addToken(TokenType.LESS_EQUAL, "<="); 
-                else
-                    addToken(TokenType.LESS_THAN, "<");
+                if(match('=')) addToken(TokenType.LESS_EQUAL, "<="); 
+                else                    addToken(TokenType.LESS_THAN, "<");
                 break;
             case '>':
-                if(match('='))
-                    addToken(TokenType.GREATER_EQUAL, ">="); 
-                else
-                    addToken(TokenType.GREATER_THAN, ">");
+                if(match('=')) addToken(TokenType.GREATER_EQUAL, ">="); 
+                else                    addToken(TokenType.GREATER_THAN, ">");
                 break;
             case '/':
                 if (match('/'))
-                  while (peek() != '\n' && !isEnd()) advance();
-                else
-                  addToken(TokenType.DIV);
+                    while (peek() != '\n' && !isEnd()) advance();
+                else if(match('='))addToken(TokenType.DIV_EQUAL, "/=");
+                else                        addToken(TokenType.DIV, "/");
                 break;
             case '\n':
                 addToken(TokenType.NEWLINE);
@@ -162,7 +161,7 @@ public class Lexer {
         if(value.length() > 1)
             jil.error(line, "A character can't have more than 1 characters within it.");
 
-        addToken(TokenType.CHAR_CONSTANT, value);
+        addToken(TokenType.CHAR_CONSTANT, value.charAt(0));
     }
 
     private void string() {
@@ -194,10 +193,10 @@ public class Lexer {
 
         final double d = Double.parseDouble(program.substring(start, current));
 
-        if((int)d - d == 0)
-            addToken(TokenType.INT_CONSTANT, (int)d + "");
+        if((long)d - d == 0)
+            addToken(TokenType.INT_CONSTANT, (long)d);
         else
-            addToken(TokenType.DECIMAL_CONSTANT, d + "");
+            addToken(TokenType.DECIMAL_CONSTANT, d);
     }
 
     private char peek() {
@@ -220,7 +219,7 @@ public class Lexer {
 
     private void addToken(TokenType type) { addToken(type, null); }
 
-    private void addToken(TokenType type, String literal) { 
+    private void addToken(TokenType type, Object literal) { 
         String text = program.substring(start, current);
         tokens.add(new Token(type, text, literal, line, start));
     }
@@ -230,6 +229,7 @@ public class Lexer {
                 (c >= 'A' && c <= 'Z') ||
                 (c == '_' || c == '$');
     }
+
     private boolean isAlphaNumeric(char c) { return isAlpha(c) || isDigit(c); }
     private boolean isDigit(char c) { return c >= '0' && c <= '9'; }
     private boolean isEnd() { return program.length() <= current; }
