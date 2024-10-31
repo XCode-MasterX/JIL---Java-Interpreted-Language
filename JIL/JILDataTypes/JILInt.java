@@ -1,18 +1,20 @@
 package JILDataTypes;
 
 import java.util.HashMap;
+import java.util.function.Predicate;
 
-import com.google.common.base.Predicate;
+import org.openqa.selenium.devtools.v120.css.model.Value;
 
+import JILBase.TokenType;
 import JILBase.jil;
 import JILUtils.JILFunction;
 import JILExceptions.*;
 
-public class JILInt extends JILNumber{
+public class JILInt extends JILType{
     private long value;
 
     public JILInt(final long x, final boolean constant) {
-        super(constant);
+        super(constant, TokenType.INT);
         value = x;
         wasSet = true;
 
@@ -20,7 +22,7 @@ public class JILInt extends JILNumber{
     }
 
     public JILInt(boolean isConstant) {
-        super(isConstant);
+        super(isConstant, TokenType.INT);
         wasSet = false;
         initFunctions();
     }
@@ -102,8 +104,7 @@ public class JILInt extends JILNumber{
     }
 
     public JILString asString() { return new JILString(this.toString(), false); }
-
-    public String toString() { return String.valueOf(value); }
+    public String toString() { return "JILInt: " + value; }
 
     public void call(final String funcName, final short line, Object... args) {
         try {
@@ -121,4 +122,91 @@ public class JILInt extends JILNumber{
 
     public static JILInt createDefault() { return new JILInt(0, false); }
     public static JILInt createDefaultConstant() { return new JILInt(true); }
+
+    @Override
+    public JILType add(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value += op;
+        return this;
+    }
+
+    @Override
+    public JILType sub(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value -= op;
+        return this;
+    }
+
+    @Override
+    public JILType mul(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value *= op;
+        return this;
+    }
+
+    @Override
+    public JILType div(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value /= op;
+        return this;
+    }
+
+    @Override
+    public JILType mod(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value %= op;
+        return this;
+    }
+
+    @Override
+    public JILType power(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value = (long) Math.pow(value, op);
+        return this;
+    }
+
+    @Override
+    public JILType and(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value &= op;
+        return this;
+    }
+
+    @Override
+    public JILType or(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value |= op;
+        return this;
+    }
+
+    @Override
+    public JILType xor(Object operand, int line) {
+        long op = convert(operand, line);
+        this.value ^= op;
+        return this;
+    }
+
+    @Override
+    public JILType not(int line) {
+        this.value = ~this.value;
+        return this;
+    }
+
+    private long convert(Object operand, final int line) {
+        long op = 0;
+
+        try { 
+            if(operand instanceof JILChar x) op = (Character) x.getValue(line);
+            else if(operand instanceof JILBoolean x) op = (Boolean) x.getValue(line) ? 1 : 0;
+            else if(operand instanceof JILInt x) op = (Long) x.getValue(line);
+            else
+                jil.error(line, "The operand is not compatible with int.");
+        }
+        catch(ValueNotSetException e) {
+            e.printStackTrace();
+            jil.error(line, e.getMessage());
+        }
+
+        return op;
+    }
 }

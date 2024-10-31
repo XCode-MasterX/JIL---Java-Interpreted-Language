@@ -1,6 +1,7 @@
 package JILDataTypes;
 
 import JILBase.jil;
+import JILBase.TokenType;
 import JILExceptions.ConstantValueEditException;
 import JILExceptions.FunctionCallException;
 import JILExceptions.ValueNotSetException;
@@ -11,16 +12,28 @@ import java.util.function.Predicate;
 import java.util.HashMap;
 
 public abstract class JILType {
+    public final TokenType dataType;
     final boolean isConstant;
     boolean wasSet;
     HashMap<String, JILFunction> functions;
 
-    JILType(boolean constant) {
+    JILType(boolean constant, TokenType thisType) {
         isConstant = constant;
+        dataType = thisType;
     }
     
     abstract public void setValue(Object arg, final int line) throws WrongCastException, ConstantValueEditException;
     abstract public Object getValue(final int line)  throws ValueNotSetException;
+    abstract public JILType add(Object operand, final int line);
+    abstract public JILType sub(Object operand, final int line);
+    abstract public JILType mul(Object operand, final int line);
+    abstract public JILType div(Object operand, final int line);
+    abstract public JILType mod(Object operand, final int line);
+    abstract public JILType power(Object operand, final int line);
+    abstract public JILType and(Object operand, final int line);
+    abstract public JILType or(Object operand, final int line);
+    abstract public JILType xor(Object operand, final int line);
+    abstract public JILType not(final int line);
 
     public void valueIsConstant(final int line) throws ConstantValueEditException {
         if(isConstant && wasSet)

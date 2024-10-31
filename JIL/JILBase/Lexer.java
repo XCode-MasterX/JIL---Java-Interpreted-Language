@@ -76,6 +76,11 @@ public class Lexer {
             case '~': addToken(TokenType.BITWISE_NOT, "~"); break;
             case '"': string(); break;
             case '\'': character(); break;
+            case '&': 
+                if(match('&'))      addToken(TokenType.AND, "&&");
+                else if(match('=')) addToken(TokenType.AND_EQUAL, "&=");
+                else                         addToken(TokenType.BITWISE_AND, "&");
+                break;
             case '-':
                 if(match('-'))      addToken(TokenType.DECREMENT, "--");
                 else if(match('-')) addToken(TokenType.SUB_EQUAL, "-=");
@@ -94,6 +99,16 @@ public class Lexer {
                 }
                 else if(match('=')) addToken(TokenType.MUL_EQUAL, "*=");
                 else                         addToken(TokenType.MUL, "*");
+                break;
+            case '/':
+                if (match('/'))
+                    while (peek() != '\n' && !isEnd()) advance();
+                else if(match('='))addToken(TokenType.DIV_EQUAL, "/=");
+                else                        addToken(TokenType.DIV, "/");
+                break;
+            case '%':
+                if(match('='))addToken(TokenType.MOD_EQUAL, "%=");
+                else                        addToken(TokenType.MOD, "%");
                 break;
             case '|':
                 if(match('|')) addToken(TokenType.OR, "||");
@@ -115,12 +130,6 @@ public class Lexer {
                 if(match('=')) addToken(TokenType.GREATER_EQUAL, ">="); 
                 else                    addToken(TokenType.GREATER_THAN, ">");
                 break;
-            case '/':
-                if (match('/'))
-                    while (peek() != '\n' && !isEnd()) advance();
-                else if(match('='))addToken(TokenType.DIV_EQUAL, "/=");
-                else                        addToken(TokenType.DIV, "/");
-                break;
             case '\n':
                 addToken(TokenType.NEWLINE);
                 line++;
@@ -129,7 +138,7 @@ public class Lexer {
             default:
                 if (isDigit(c)) number();
                 else if (isAlpha(c)) identifier();
-                else jil.error(line, "Unexpected character.");
+                else jil.error(line, "Unexpected character." + c);
             
                 break;
         }

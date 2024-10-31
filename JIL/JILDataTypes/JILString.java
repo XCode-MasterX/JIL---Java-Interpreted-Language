@@ -3,6 +3,7 @@ package JILDataTypes;
 import JILExceptions.ConstantValueEditException;
 import JILExceptions.ValueNotSetException;
 import JILExceptions.WrongCastException;
+import JILBase.TokenType;
 import JILBase.jil;
 
 import java.util.function.Predicate;
@@ -12,13 +13,13 @@ public class JILString extends JILType{
     private StringBuilder value;
 
     public JILString(String x, boolean constant) {
-        super(constant);
+        super(constant, TokenType.STRING);
         value = new StringBuilder(x);
         wasSet = true;
     }
 
     public JILString(boolean constant) {
-        super(constant);
+        super(constant, TokenType.STRING);
         wasSet = false;
     }
 
@@ -52,5 +53,96 @@ public class JILString extends JILType{
         wasSet = true;
     }
 
-    public String toString() { return value.toString(); }
+    public String toString() { return "JILString: " + value.toString(); }
+
+    private String convert(Object operand, final int line) {
+        String op = "";
+
+        try {
+            if(operand instanceof JILString x) op = (String) x.getValue(line);
+            else if(operand instanceof JILChar x) op = x.getValue(line) + "";
+            else if(operand instanceof JILInt x) op = x.getValue(line) + "";
+            else if(operand instanceof JILDecimal x) op = x.getValue(line) + "";
+            else if(operand instanceof JILBoolean x) op = x.getValue(line) + "";
+        }
+        catch(ValueNotSetException e) {
+
+        }
+        return op;
+    }
+
+    @Override
+    public JILType add(Object operand, int line) {
+        String op = convert(operand, line);
+        this.value.append(op);
+        return this;
+    }
+
+    @Override
+    public JILType sub(Object operand, int line) {
+        jil.error(line, "The subtraction operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType mul(Object operand, int line) {
+        long op = 0;
+        
+        try {
+            if(operand instanceof JILInt x) op = (Long) x.getValue(line);
+            else
+                throw new WrongCastException("This value can't be used for string repetition.", line);
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            jil.error(line, e.getMessage());
+        }
+        final String startString = this.value.toString();
+
+        for(;op > 1; op--) this.value.append(startString);
+
+        return this;
+    }
+
+    @Override
+    public JILType div(Object operand, int line) {
+        jil.error(line, "The division operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType mod(Object operand, int line) {
+        jil.error(line, "The mod operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType power(Object operand, int line) {
+        jil.error(line, "The power operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType and(Object operand, int line) {
+        jil.error(line, "The and operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType or(Object operand, int line) {
+        jil.error(line, "The or operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType xor(Object operand, int line) {
+        jil.error(line, "The xor operation is not supported for Strings.");
+        return null;
+    }
+
+    @Override
+    public JILType not(int line) {
+        jil.error(line, "The not operation is not supported for Strings.");
+        return null;
+    }
 }

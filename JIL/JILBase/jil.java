@@ -9,7 +9,6 @@ import JILUtils.JILCaster;
 import JILUtils.JILConstructor;
 import JILUtils.JILFunction;
 import JILUtils.JILUserFunction;
-import net.bytebuddy.matcher.HasSuperClassMatcher;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,8 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-
-import org.openqa.selenium.devtools.v120.css.model.Value;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -63,17 +60,6 @@ public class jil {
                     }
                 }
             ),
-            new JILConstructor<JILDecimal>(new JILFunction<JILDecimal>(){
-                    public JILDecimal call() {
-                        return new JILDecimal(0.0, false);
-                    }
-                },
-                new JILFunction<JILDecimal>(){
-                    public JILDecimal call() {
-                        return new JILDecimal(true);
-                    }
-                }
-            ),
             new JILConstructor<JILChar>(new JILFunction<JILChar>(){
                     public JILChar call() {
                         return new JILChar('\0', false);
@@ -82,6 +68,17 @@ public class jil {
                 new JILFunction<JILChar>(){
                     public JILChar call() {
                         return new JILChar(true);
+                    }
+                }
+            ),
+            new JILConstructor<JILDecimal>(new JILFunction<JILDecimal>(){
+                    public JILDecimal call() {
+                        return new JILDecimal(0.0, false);
+                    }
+                },
+                new JILFunction<JILDecimal>(){
+                    public JILDecimal call() {
+                        return new JILDecimal(true);
                     }
                 }
             ),
@@ -210,7 +207,7 @@ public class jil {
         }
     }
     
-    static void error(final int line, final String message) { report(line, "", message); System.exit(-1); }
+    public static void error(final int line, final String message) { report(line, "", message); System.exit(-1); }
     
     private static void report(final int line, final String where, final String message) {
         System.err.println("[line " + line + "] Error" + where + ": " + message);
@@ -284,6 +281,7 @@ public class jil {
         varNames = new String[var.size()];
         varValues = new JILType[var.size()];
         varCaster = new JILCaster[var.size()];
+        
         for(Map.Entry<String, TokenType> ele : sortable)
         {
             varNames[arrIndex] = ele.getKey();
@@ -308,9 +306,10 @@ public class jil {
         Token curToken = null;
 
         while((curToken = tokens.get(index)).type != TokenType.RIGHT_BRACE) {
-            if(curToken.type == TokenType.VARIABLE)
+            if(curToken.type == TokenType.VARIABLE) {
                 index = handleAssignment(tokens, index);
-
+                continue;
+            }
             index++;
         }
 
@@ -320,8 +319,6 @@ public class jil {
     private int handleAssignment(final ArrayList<Token> tokens, int index) {
         Token curToken = tokens.get(index);
         JILType curVariable = varValues[getVariable(curToken.lexeme)];
-
-        System.out.println("Handling assignment for " + curToken.lexeme);
 
         try {
             while((curToken = tokens.get(index)).type != TokenType.NEWLINE && curToken.type != TokenType.SEMICOLON) {
@@ -340,12 +337,18 @@ public class jil {
                     tok = tokens.get(index + inc);
 
                     if(tok.type == TokenType.VARIABLE) {
-                        handleAssignment(tokens, index + inc);
-                        curVariable.setValue(getVariableValue(tok.lexeme).getValue((short) curToken.line), (short) curToken.line);
+                        checkCompatible(getVariableValue(curToken).dataType, getVariableValue(tok).dataType, curToken.line);
+                        index = handleAssignment(tokens, index + inc);
+                        curVariable.setValue(getVariableValue(tok).getValue((short) curToken.line), (short) curToken.line);
+                        continue;
                     }
                     else {
-                        JILType value = parser.parseExpression(tokens, index + inc);
+                        JILType value = parser.parseExpression(getVariableValue(curToken), tokens, index + inc);
                         curVariable.setValue(value.getValue(tok.line), tok.line);
+
+                        while(tokens.get(index++).type != TokenType.NEWLINE);
+
+                        return index;
                     }
                 }
                 index++;
@@ -388,5 +391,15 @@ public class jil {
         
         jil.error(search.line, "The variable " + search.lexeme + " has not been defined.");
         return null;
+    }
+
+    public void checkCompatible(final TokenType a, final TokenType b, final int line) {
+        if( a == b
+            || (a == TokenType.STRING)
+            || (a == TokenType.DECIMAL && (b == TokenType.INT || b == TokenType.CHAR || b == TokenType.BOOL))
+            || (a == TokenType.INT && (b == TokenType.CHAR || b == TokenType.BOOL)))
+            return;
+        else
+            jil.error(line, "The data types are incompatible.");
     }
 }

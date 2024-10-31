@@ -1,15 +1,20 @@
 package JILUtils;
 
 import JILBase.jil;
-import JILDataTypes.JILNumber;
+import JILDataTypes.JILType;
 import JILDataTypes.JILArray;
 import JILDataTypes.JILDecimal;
+import JILDataTypes.JILInt;
 import JILExceptions.ValueNotSetException;
 
 import java.util.Comparator;
 
 public class JILMath {
-    public static JILDecimal sin(final JILNumber passed, final short line) {
+    public static JILDecimal sin(final JILType passed, final short line) {
+        if(!(passed instanceof JILDecimal || passed instanceof JILInt)){
+            jil.error(line, "The passed value is not a decimal or int.");
+        }
+
         JILDecimal angle = (JILDecimal) passed;
         JILDecimal returnable = null;
         

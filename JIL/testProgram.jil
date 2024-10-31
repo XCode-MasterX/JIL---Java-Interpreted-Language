@@ -7,14 +7,14 @@ declare {
     b: int
     a: int
     name: String
-    name1: String
-    name2: String
-    name3: String
+    test: char
 }
 
 initial {
-    a = b = 100/2
-    c = 1000
+    a = b = 100 + 2 / 2 + 10 * 20
+    c = 1000 | 230
+    name = "Arpan" * 3
+    test = 'a' & 'b' & 'c' + 'a'
 }
 
 // Main driving code. Can't run without this.
@@ -26,7 +26,11 @@ driver {
     b = io.input("Enter second number: ")
 
     a += b
-    io.writef("Sum = ", a)
+
+    if(a % 2 == 0)
+        io.writef("Sum = ", a)
+    else
+        io.writef("Sum = ", a - 1)
 
     x = io.input("Enter your name: ")
     io.writef("Hello %s", x)
