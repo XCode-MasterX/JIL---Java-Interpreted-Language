@@ -1,0 +1,9 @@
+/* import {
+    jilio as io
+}
+
+factorial(a:int): int{
+    io.writef(a--);
+    return a;
+}
+*/

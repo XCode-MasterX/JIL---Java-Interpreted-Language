@@ -1,0 +1,57 @@
+import {
+    "external.jil" as ext
+    jilio as io
+}
+
+declare {
+    c: const int
+    b: int
+    a: int
+    name: String
+    test: char
+}
+
+initial {
+    a = 100 + 2 / 2 + 10 * 20
+    b = a / 2
+    c = 1000 | 230
+    name = "Arpan" * 10
+    test = 'a' & 'b' & 'c' + 'a'
+}
+
+// Main driving code. Can't run without this.
+driver {
+    io.writef("A value: %d", a)
+    io.writef("B value: %d", b)
+
+    a = io.input("Enter first number: ")
+    b = io.input("Enter second number: ")
+
+    a += b
+
+    if(a % 2 == 0) {
+        io.writef("Sum = ", a)
+    }
+    else
+        io.writef("Sum = ", a - 1)
+
+    name = io.input("Enter your name: ")
+    io.writef("Hello %s", x)
+
+    factorial(b)
+}
+
+factorial(a: const int): void {
+    temp {
+        fac: int
+    }
+
+    fac = 1
+
+    while(a > 0) {
+        fac *= a
+        a--
+    }
+
+    io.writef("The factorial is: %d", fac)
+}
